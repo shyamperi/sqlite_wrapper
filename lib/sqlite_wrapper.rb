@@ -73,5 +73,5 @@ end
 
 
 db = SqliteWrapper
-nha = [{:id=>1,:name=>'John'},{:id=>2,:name=>'Smith'},{:id=>3,:name=>'Chris',:address=>'UK','Current Location'=>'US'},{:id=>4,:name=>'Taggart',:address=>'London','Current Location'=>'India'}]
+nha = [{:id=>1,:name=>'John'},{:id=>2,:name=>'Smith'},{:id=>3,:name=>'Mark',:address=>'UK','Current Location'=>'US'},{:id=>4,:name=>'William',:address=>'London','Current Location'=>'India'}]
 db.repsert([:id],nha,'dummy_table')
