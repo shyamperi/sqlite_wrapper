@@ -40,9 +40,11 @@ module SqliteWrapper
   def repsert(unique_keys, tuple, table_name)
     tuple = [tuple] if Hash == tuple.class
     begin
-      keys = tuple.first.keys
-      selected = tuple.find_delete_by_keys(keys)
-      insert_or_replace(unique_keys,selected,table_name)
+      insert_or_replace(
+        unique_keys,
+        tuple.find_delete_by_keys(tuple.first.keys),
+        table_name
+      )
       break if tuple.empty?
     end while(true)
   end
