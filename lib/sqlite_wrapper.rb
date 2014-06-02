@@ -4,6 +4,14 @@ require 'sqlite3'
 # you may need to require other libraries here
 require 'awesome_print'
 
+class Array
+  def find_delete_by_keys(keys)
+    found = self.find_all{|item| keys == item.keys}
+    found.each{|item| self.delete(item)}
+    found
+  end
+end
+
 module SqliteWrapper
   extend SQLite3
   extend self
@@ -33,10 +41,8 @@ module SqliteWrapper
     tuple = [tuple] if Hash == tuple.class
     begin
       keys = tuple.first.keys
-      selected = tuple.find_all{|item| keys == item.keys }
+      selected = tuple.find_delete_by_keys(keys)
       insert_or_replace(unique_keys,selected,table_name)
-      selected.each{|item| tuple.delete(item)}
-      ap tuple
       break if tuple.empty?
     end while(true)
   end
@@ -55,7 +61,6 @@ module SqliteWrapper
           end
         end
       rescue SQLite3::SQLException => ex
-        puts ex.message
         case ex.message
         when /no such table/
           create_table(table_name, tuple.first.keys, unique_keys)
