@@ -6,9 +6,7 @@ require 'awesome_print'
 
 class Array
   def find_delete_by_keys(keys)
-    found = self.find_all{|item| keys == item.keys}
-    found.each{|item| self.delete(item)}
-    found
+    self.find_all{|item| keys == item.keys}.each{|item| self.delete(item)}
   end
 end
 
@@ -17,10 +15,9 @@ class SQLite3::Database
   end
 
   def create_table(tbl_name, col_names, unique_keys=nil)
-    query = unique_keys ? \
+    execute unique_keys ? \
       "CREATE TABLE if not exists `#{tbl_name}` (#{col_names.map{|col_name| '`'+col_name.to_s+'`'}.join(',')}, UNIQUE (#{unique_keys.map{|unique_key| '`'+unique_key.to_s+'`'}.join(',')}))" : \
       "CREATE TABLE if not exists `#{tbl_name}` (#{col_names.map{|col_name| '`'+col_name.to_s+'`'}.join(',')})"
-    execute query
   end
 
   def add_column(tbl_name, col_name)
