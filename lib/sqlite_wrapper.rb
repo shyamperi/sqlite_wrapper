@@ -27,7 +27,7 @@ class SQLite3::Database
   def repsert(unique_keys, tuple, table_name)
     tuple = [tuple] if Hash == tuple.class
     begin
-      insert_or_replace(
+      persist(
         unique_keys,
         tuple.find_delete_by_keys(tuple.first.keys),
         table_name
@@ -37,7 +37,7 @@ class SQLite3::Database
   end
 
   private
-  def insert_or_replace(unique_keys,tuple,table_name)
+  def persist(unique_keys,tuple,table_name)
     prepare_sql = "insert or replace into \
                     `#{table_name}`( #{tuple.first.keys.map{|key| '`'+key.to_s+'`'}.join(",")}) \
                     values(#{tuple.first.keys.length.times.map{'?'}.join(',')})
