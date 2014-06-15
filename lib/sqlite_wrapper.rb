@@ -3,6 +3,7 @@ require 'sqlite3'
 
 # you may need to require other libraries here
 require 'awesome_print'
+require 'json'
 
 # Extends Array class with a find_delete_by_keys methods which finds hashes in
 # array which matches the keys
@@ -55,7 +56,14 @@ module SQLite3
         begin
           db.prepare(prepare_sql) do |statement|
             tuple.each do |row|
-              statement.execute row.values
+              statement.execute row.values.map{ |item| 
+                case item.class.to_s
+                when "Array", "Hash"
+                  item.to_json
+                else
+                  item
+                end
+              }
             end
           end
         rescue SQLite3::SQLException => ex
@@ -76,5 +84,5 @@ module SQLite3
 end
 
 db = SQLite3::Database.new(ARGV[0])
-nha = [{:id=>1,:name=>'John'},{:id=>2,:name=>'Smith'},{:id=>3,:name=>'Mark',:address=>'UK','Current Location'=>'US'},{:id=>4,:name=>'William',:address=>'London','Current Location'=>'India'}]
+nha = [{:id=>1,:name=>'John'},{:id=>2,:name=>'Smith'},{:id=>3,:name=>'Mark',:address=> {:street => 'Abc', :locality => 'Def' },'Current Location'=>'US'},{:id=>4,:name=>'William',:address=>['London, GB'],'Current Location'=>'India'}]
 db.repsert([:id],nha,'dummy_table')
