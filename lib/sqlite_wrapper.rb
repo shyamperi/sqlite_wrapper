@@ -17,6 +17,53 @@ end
 module SQLite3
   # Extends sqlite's database class with a repsert and upsert methods
   class Database
+
+    def get_var(key, default)
+      d = execute("select value from variables where key=?;",key).flatten.first
+      if d.nil?
+        return default
+      else
+        return d
+      end
+    rescue SQLite3::SQLException => ex
+      case ex.message
+      when /no such table/
+        create_table('variables',['key','value'],['key'])
+        retry
+      else
+        raise ex
+      end
+    end
+
+    def save_var(key, value)
+      d = execute("select count(*) from variables where key=?;",key)[0][0]
+      if d .eql? 0
+        execute("insert into variables(key,value) values(?,?);",key,value)
+      else
+        execute("update variables set value=? where key=?;",value,key)
+      end
+    rescue SQLite3::SQLException => ex
+      case ex.message
+      when /no such table/
+        create_table('variables',['key','value'],['key'])
+        retry
+      else
+        raise ex
+      end
+    end
+
+    def delete_var(key)
+      execute("delete from variables where key=?",key)
+    rescue SQLite3::SQLException => ex
+      case ex.message
+      when /no such table/
+        create_table('variables',['key','value'],['key'])
+        retry
+      else
+        raise ex
+      end
+    end
+
     def upsert
     end
 
@@ -82,3 +129,8 @@ module SQLite3
     end
   end
 end
+db = SQLite3::Database.new(ARGV[0])
+
+ap db.save_var('list',100)
+ap db.get_var('list',1)
+ap db.delete_var('list')
