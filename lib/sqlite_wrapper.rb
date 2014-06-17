@@ -61,7 +61,7 @@ module SQLite3
                 when "Array", "Hash"
                   item.to_json
                 else
-                  item
+                  item.to_s
                 end
               }
             end
@@ -84,5 +84,5 @@ module SQLite3
 end
 
 db = SQLite3::Database.new(ARGV[0])
-nha = [{:id=>1,:name=>'John'},{:id=>2,:name=>'Smith'},{:id=>3,:name=>'Mark',:address=> {:street => 'Abc', :locality => 'Def' },'Current Location'=>'US'},{:id=>4,:name=>'William',:address=>['London, GB'],'Current Location'=>'India'}]
+nha = [{:id=>1,:name=>'John'},{:id=>2,:name=>'Smith'},{:id=>3,:name=>'Mark',:address=> {:street => 'Abc', :locality => 'Def' },'Current Location'=>'US'},{:id=>4,:name=>'William',:address=>['London, GB'],'Current Location'=>'India',:ctime => Time.now}]
 db.repsert([:id],nha,'dummy_table')
