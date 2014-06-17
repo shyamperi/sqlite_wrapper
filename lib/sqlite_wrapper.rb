@@ -129,8 +129,3 @@ module SQLite3
     end
   end
 end
-db = SQLite3::Database.new(ARGV[0])
-
-ap db.save_var('list',100)
-ap db.get_var('list',1)
-ap db.delete_var('list')
