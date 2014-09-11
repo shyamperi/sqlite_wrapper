@@ -1,5 +1,6 @@
 # encoding: UTF-8
 require 'sqlite3'
+require 'retriable'
 
 # you may need to require other libraries here
 require 'awesome_print'
@@ -100,30 +101,32 @@ module SQLite3
                     `#{table_name}`( #{tuple.first.keys.map { |key| '`' + key.to_s + '`' }.join(',') }) \
                     values(#{tuple.first.keys.length.times.map { '?' }.join(',') } )
       "
-      transaction do |db|
-        begin
-          db.prepare(prepare_sql) do |statement|
-            tuple.each do |row|
-              statement.execute row.values.map{ |item| 
-                case item.class.to_s
-                when "Array", "Hash"
-                  item.to_json
-                else
-                  item.to_s
-                end
-              }
+      Retriable.retriable :on => SQLite3::BusyException, :tries => 10, :interval => 3 do
+        transaction do |db|
+          begin
+            db.prepare(prepare_sql) do |statement|
+              tuple.each do |row|
+                statement.execute row.values.map{ |item| 
+                  case item.class.to_s
+                  when "Array", "Hash"
+                    item.to_json
+                  else
+                    item.to_s
+                  end
+                }
+              end
             end
-          end
-        rescue SQLite3::SQLException => ex
-          case ex.message
-          when /no such table/
-            create_table(table_name, tuple.first.keys, unique_keys)
-            retry
-          when /no column named/
-            add_column(table_name, ex.message.split(/no column named/).last.strip)
-            retry
-          else
-            raise ex
+          rescue SQLite3::SQLException => ex
+            case ex.message
+            when /no such table/
+              create_table(table_name, tuple.first.keys, unique_keys)
+              retry
+            when /no column named/
+              add_column(table_name, ex.message.split(/no column named/).last.strip)
+              retry
+            else
+              raise ex
+            end
           end
         end
       end
