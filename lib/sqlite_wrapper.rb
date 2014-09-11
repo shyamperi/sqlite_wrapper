@@ -67,7 +67,7 @@ module SQLite3
     def upsert
     end
 
-    def create_table(tbl_name, col_names, unique_keys = nil)
+    def create_table(tbl_name = 'main_table', col_names, unique_keys = nil)
       if unique_keys
         query = "CREATE TABLE if not exists `#{tbl_name}` (#{col_names.map { |col_name| '`' + col_name.to_s + '`' }.join(',')}, UNIQUE (#{unique_keys.map { |unique_key| '`' + unique_key.to_s + '`' }.join(',') }))"
       else
@@ -76,12 +76,13 @@ module SQLite3
       execute query
     end
 
-    def add_column(tbl_name, col_name)
+    def add_column(tbl_name = 'main_table', col_name)
       execute("ALTER TABLE `#{tbl_name}` ADD COLUMN `#{col_name}`")
     end
 
-    def repsert(unique_keys, tuple, table_name)
-      tuple = [tuple] if Hash == tuple.class
+    def repsert(unique_keys, main_tuple, table_name = 'main_table')
+      tuple = main_tuple
+      tuple = [ tuple ] if Hash == tuple.class
       loop do
         persist(
           unique_keys,
