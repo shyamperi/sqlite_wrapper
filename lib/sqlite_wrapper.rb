@@ -68,7 +68,7 @@ module SQLite3
     def upsert
     end
 
-    def create_table(tbl_name = 'main_table', col_names, unique_keys = nil)
+    def create_table( tbl_name, col_names, unique_keys = nil)
       if unique_keys
         query = "CREATE TABLE if not exists `#{tbl_name}` (#{col_names.map { |col_name| '`' + col_name.to_s + '`' }.join(',')}, UNIQUE (#{unique_keys.map { |unique_key| '`' + unique_key.to_s + '`' }.join(',') }))"
       else
@@ -77,11 +77,11 @@ module SQLite3
       execute query
     end
 
-    def add_column(tbl_name = 'main_table', col_name)
+    def add_column(tbl_name, col_name)
       execute("ALTER TABLE `#{tbl_name}` ADD COLUMN `#{col_name}`")
     end
 
-    def repsert(unique_keys, main_tuple, table_name = 'main_table')
+    def repsert(unique_keys, main_tuple, table_name)
       tuple = main_tuple
       tuple = [ tuple ] if Hash == tuple.class
       loop do
@@ -101,7 +101,7 @@ module SQLite3
                     `#{table_name}`( #{tuple.first.keys.map { |key| '`' + key.to_s + '`' }.join(',') }) \
                     values(#{tuple.first.keys.length.times.map { '?' }.join(',') } )
       "
-      Retriable.retriable :on => SQLite3::BusyException, :tries => 10, :interval => 3 do
+      Retriable.retriable :on => SQLite3::BusyException, :tries => 20, :interval => 3 do
         transaction do |db|
           begin
             db.prepare(prepare_sql) do |statement|
