@@ -14,18 +14,20 @@ class Array
   end
 end
 
-# Extends Sqlite's Database module
 module SQLite3
-  # Extends sqlite's database class with a repsert and upsert methods
   class Database
 
-    def get_var(key, default)
-      d = execute("select value from variables where key=?;",key).flatten.first
-      if d.nil?
-        return default
-      else
-        return d
-      end
+    def get( table_name )
+      execute("select * from #{table_name};").map{|tuple|
+        tuple.reject{|key, value|
+          key.class.name == 'Fixnum'
+        }.symbolize_keys
+      }
+    end
+
+    def get_var(key)
+      value = execute("select value from variables where key=?;",key).first['value'] rescue nil
+      JSON.parse( value ).symbolize_keys rescue value
     rescue SQLite3::SQLException => ex
       case ex.message
       when /no such table/
@@ -37,12 +39,19 @@ module SQLite3
     end
 
     def save_var(key, value)
-      d = execute("select count(*) from variables where key=?;",key)[0][0]
-      if d .eql? 0
-        execute("insert into variables(key,value) values(?,?);",key,value)
-      else
-        execute("update variables set value=? where key=?;",value,key)
-      end
+      value = case value.class.name
+              when 'Array', 'Hash', 'ActiveSupport::HashWithIndifferentAccess'
+                JSON.generate(value)
+              when 'Time', 'Date', 'String'
+                value.to_s
+              when 'Fixnum', 'Float'
+                value
+              when 'NilClass'
+                nil
+              else
+                raise "Unhandled event class: #{value.class.name}"
+              end
+      execute("insert or replace into variables(key,value) values(?,?);",key,value)
     rescue SQLite3::SQLException => ex
       case ex.message
       when /no such table/
@@ -63,9 +72,6 @@ module SQLite3
       else
         raise ex
       end
-    end
-
-    def upsert
     end
 
     def create_table( tbl_name, col_names, unique_keys = nil)
@@ -94,24 +100,34 @@ module SQLite3
       end
     end
 
+    def drop_table( tbl_name )
+      execute( "drop table #{tbl_name}" )
+    end
+
     private
 
     def persist(unique_keys, tuple, table_name)
       prepare_sql = "insert or replace into \
                     `#{table_name}`( #{tuple.first.keys.map { |key| '`' + key.to_s + '`' }.join(',') }) \
                     values(#{tuple.first.keys.length.times.map { '?' }.join(',') } )
-      "
+      ".strip
       Retriable.retriable :on => SQLite3::BusyException, :tries => 20, :interval => 3 do
         transaction do |db|
           begin
             db.prepare(prepare_sql) do |statement|
               tuple.each do |row|
                 statement.execute row.values.map{ |item| 
-                  case item.class.to_s
-                  when "Array", "Hash"
-                    item.to_json
-                  else
+                  case item.class.name
+                  when 'Array', 'Hash', 'ActiveSupport::HashWithIndifferentAccess'
+                    JSON.generate(item)
+                  when 'Time', 'Date', 'String'
                     item.to_s
+                  when 'Fixnum', 'Float'
+                    item
+                  when 'NilClass'
+                    nil
+                  else
+                    raise "Unhandled event class: #{item.class.name}"
                   end
                 }
               end
