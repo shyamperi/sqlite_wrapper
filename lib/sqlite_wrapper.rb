@@ -26,7 +26,7 @@ module SQLite3
     end
 
     def get_var(key)
-      value = execute("select value from variables where key=?;",key).first['value'] rescue nil
+      value = execute("select value from variables where key=?;",key).flatten.first rescue nil
       JSON.parse( value ).symbolize_keys rescue value
     rescue SQLite3::SQLException => ex
       case ex.message
