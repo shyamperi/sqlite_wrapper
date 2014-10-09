@@ -12,6 +12,13 @@ class Array
   def find_delete_by_keys(keys)
     select { |item| keys == item.keys }.each { |item| delete(item) }
   end
+
+  def segregate( keys = first.keys )
+    fragment, left_over = partition{|item| item.keys == keys }
+    self.replace(left_over)
+    fragment
+  end
+  
 end
 
 module SQLite3
@@ -26,7 +33,7 @@ module SQLite3
     end
 
     def get_var(key)
-      value = execute("select value from variables where key=?;",key).first['value'] rescue nil
+      value = execute("select value from variables where key=?;",key).flatten.first rescue nil
       JSON.parse( value ).symbolize_keys rescue value
     rescue SQLite3::SQLException => ex
       case ex.message
@@ -42,7 +49,7 @@ module SQLite3
       value = case value.class.name
               when 'Array', 'Hash', 'ActiveSupport::HashWithIndifferentAccess'
                 JSON.generate(value)
-              when 'Time', 'Date', 'String'
+              when 'Time', 'Date', 'String', 'FalseClass', 'TrueClass'
                 value.to_s
               when 'Fixnum', 'Float'
                 value
@@ -87,13 +94,12 @@ module SQLite3
       execute("ALTER TABLE `#{tbl_name}` ADD COLUMN `#{col_name}`")
     end
 
-    def repsert(unique_keys, main_tuple, table_name)
-      tuple = main_tuple
+    def repsert(unique_keys, tuple, table_name)
       tuple = [ tuple ] if Hash == tuple.class
       loop do
         persist(
           unique_keys,
-          tuple.find_delete_by_keys(tuple.first.keys),
+          tuple.segregate,
           table_name
         )
         break if tuple.empty?
@@ -120,7 +126,7 @@ module SQLite3
                   case item.class.name
                   when 'Array', 'Hash', 'ActiveSupport::HashWithIndifferentAccess'
                     JSON.generate(item)
-                  when 'Time', 'Date', 'String'
+                  when 'Time', 'Date', 'String', 'FalseClass', 'TrueClass'
                     item.to_s
                   when 'Fixnum', 'Float'
                     item
